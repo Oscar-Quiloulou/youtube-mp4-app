@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Roue aléatoire de prénoms</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #111827;
+      --card: #1f2937;
+      --accent: #3b82f6;
+      --accent-soft: #60a5fa33;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #1f2937, #020617);
+      color: var(--text);
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1100px;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: linear-gradient(145deg, #020617, #020617, #111827);
+      border-radius: 18px;
+      padding: 20px 22px;
+      border: 1px solid #1f2937;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: radial-gradient(circle at top left, #3b82f622, transparent 60%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #f97316, #ef4444);
+      color: white;
+      font-size: 0.8rem;
+      box-shadow: 0 0 12px #f9731644;
+    }
+
+    .subtitle {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .wheel-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 0 4px;
+    }
+
+    canvas {
+      max-width: 100%;
+    }
+
+    .pointer {
+      position: absolute;
+      top: 50%;
+      right: 50%;
+      transform: translate(50%, -50%);
+      width: 0;
+      height: 0;
+      border-top: 14px solid transparent;
+      border-bottom: 14px solid transparent;
+      border-left: 22px solid #fbbf24;
+      filter: drop-shadow(0 0 6px #fbbf2444);
+    }
+
+    .spin-btn {
+      position: absolute;
+      bottom: 10px;
+      right: 50%;
+      transform: translateX(50%);
+      padding: 10px 22px;
+      border-radius: 999px;
+      border: none;
+      background: radial-gradient(circle at 30% 20%, #22c55e, #16a34a);
+      color: white;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(22, 163, 74, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+
+    .spin-btn:active {
+      transform: translateX(50%) scale(0.97);
+      box-shadow: 0 6px 18px rgba(22, 163, 74, 0.6);
+      filter: brightness(0.95);
+    }
+
+    .spin-btn[disabled] {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .spin-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: white;
+    }
+
+    .result {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 1rem;
+      min-height: 1.4em;
+    }
+
+    .result span {
+      font-weight: 700;
+      color: #fbbf24;
+    }
+
+    .form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .row > * {
+      flex: 1;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 9px 11px;
+      border-radius: 999px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+    }
+
+    input[type="text"]::placeholder {
+      color: #6b7280;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px #1d4ed8;
+      background: #020617;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 9px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+      filter: brightness(0.95);
+    }
+
+    .btn-primary {
+      background: radial-gradient(circle at 30% 20%, #3b82f6, #1d4ed8);
+      color: white;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.5);
+    }
+
+    .btn-secondary {
+      background: #020617;
+      color: var(--muted);
+      border: 1px solid #374151;
+    }
+
+    .btn-danger {
+      background: radial-gradient(circle at 30% 20%, #ef4444, #b91c1c);
+      color: white;
+      box-shadow: 0 10px 25px rgba(239, 68, 68, 0.5);
+    }
+
+    .list {
+      margin-top: 6px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .list::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 999px;
+    }
+
+    .name-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: #020617;
+      border: 1px solid #111827;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+
+    .name-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .name-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+
+    .name-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+
+    .name-remove {
+      border: none;
+      background: transparent;
+      color: #6b7280;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 2px 4px;
+      border-radius: 6px;
+      transition: background 0.12s ease, color 0.12s ease;
+    }
+
+    .name-remove:hover {
+      background: #111827;
+      color: #fca5a5;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .chip {
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #020617;
+      border: 1px dashed #374151;
+    }
+
+    .footer {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .footer a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    .badge {
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #020617;
+      border: 1px solid #1f2937;
+      font-size: 0.7rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e88;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Roue -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="title">
+            <span>R</span>
+            Roue aléatoire de prénoms
+          </div>
+          <div class="subtitle">Ajoute des prénoms, tourne la roue, laisse le hasard décider.</div>
+        </div>
+        <div class="badge">
+          <div class="badge-dot"></div>
+          GitHub-ready
+        </div>
+      </div>
+
+      <div class="wheel-container">
+        <canvas id="wheel" width="420" height="420"></canvas>
+        <div class="pointer"></div>
+        <button id="spinBtn" class="spin-btn">
+          <div class="spin-dot"></div>
+          LANCER LA ROUE
+        </button>
+      </div>
+
+      <div class="result" id="result"></div>
+    </div>
+
+    <!-- Panneau de contrôle -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="title">
+            <span>+</span>
+            Liste des prénoms
+          </div>
+          <div class="subtitle">Ajoute, supprime, réinitialise. Tout se passe ici.</div>
+        </div>
+      </div>
+
+      <div class="form">
+        <div class="row">
+          <input id="nameInput" type="text" placeholder="Ajouter un prénom (Entrée pour valider)">
+          <button id="addBtn" class="btn btn-primary">Ajouter</button>
+        </div>
+
+        <div class="row">
+          <button id="shuffleBtn" class="btn btn-secondary">Mélanger la liste</button>
+          <button id="clearBtn" class="btn btn-danger">Tout effacer</button>
+        </div>
+
+        <div class="chips">
+          <div class="chip">Astuce : tu peux coller une liste de prénoms séparés par des virgules.</div>
+        </div>
+
+        <div class="list" id="nameList"></div>
+
+        <div class="footer">
+          <span>Les prénoms sont sauvegardés dans ton navigateur.</span>
+          <span>Prêt pour GitHub Pages : mets ce fichier en <code>index.html</code>.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Gestion des données ---
+    const STORAGE_KEY = "roulette_prenoms_v1";
+
+    function loadNames() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveNames(names) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(names));
+    }
+
+    let names = loadNames();
+    if (names.length === 0) {
+      names = ["Alice", "Bob", "Chloé", "Dimitri"];
+      saveNames(names);
+    }
+
+    // --- DOM ---
+    const nameInput = document.getElementById("nameInput");
+    const addBtn = document.getElementById("addBtn");
+    const shuffleBtn = document.getElementById("shuffleBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const nameList = document.getElementById("nameList");
+    const resultEl = document.getElementById("result");
+    const spinBtn = document.getElementById("spinBtn");
+
+    // --- Liste visuelle ---
+    function randomColor(seedIndex) {
+      const base = [
+        "#f97316", "#22c55e", "#3b82f6", "#a855f7",
+        "#ec4899", "#eab308", "#06b6d4", "#f97316"
+      ];
+      return base[seedIndex % base.length];
+    }
+
+    function renderList() {
+      nameList.innerHTML = "";
+      names.forEach((name, index) => {
+        const item = document.createElement("div");
+        item.className = "name-item";
+
+        const label = document.createElement("div");
+        label.className = "name-label";
+
+        const dot = document.createElement("div");
+        dot.className = "name-dot";
+        dot.style.background = randomColor(index);
+
+        const text = document.createElement("div");
+        text.className = "name-text";
+        text.textContent = name;
+
+        label.appendChild(dot);
+        label.appendChild(text);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "name-remove";
+        removeBtn.textContent = "Supprimer";
+        removeBtn.addEventListener("click", () => {
+          names.splice(index, 1);
+          saveNames(names);
+          renderList();
+          drawWheel();
+        });
+
+        item.appendChild(label);
+        item.appendChild(removeBtn);
+        nameList.appendChild(item);
+      });
+    }
+
+    // --- Roue ---
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const size = canvas.width;
+    const radius = size / 2;
+    let currentAngle = 0;
+    let spinning = false;
+
+    function drawWheel() {
+      ctx.clearRect(0, 0, size, size);
+
+      if (names.length === 0) {
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.fillStyle = "#111827";
+        ctx.beginPath();
+        ctx.arc(0, 0, radius - 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#4b5563";
+        ctx.font = "bold 16px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Ajoute des prénoms pour commencer", 0, 0);
+        ctx.restore();
+        return;
+      }
+
+      const anglePerSlice = (Math.PI * 2) / names.length;
+
+      ctx.save();
+      ctx.translate(radius, radius);
+      ctx.rotate(currentAngle);
+
+      for (let i = 0; i < names.length; i++) {
+        const startAngle = i * anglePerSlice;
+        const endAngle = startAngle + anglePerSlice;
+
+        // Fond du segment
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+        grad.addColorStop(0, "#020617");
+        grad.addColorStop(1, randomColor(i));
+        ctx.fillStyle = grad;
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius - 10, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fill();
+
+        // Lignes de séparation
+        ctx.strokeStyle = "rgba(15,23,42,0.9)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius - 10, startAngle, endAngle);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Texte
+        ctx.save();
+        ctx.fillStyle = "#f9fafb";
+        ctx.font = "bold 14px system-ui";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+
+        const textAngle = startAngle + anglePerSlice / 2;
+        ctx.rotate(textAngle);
+        ctx.translate(radius - 30, 0);
+        ctx.rotate(Math.PI / 2);
+
+        const label = names[i];
+        const maxWidth = 120;
+        const text = label.length > 18 ? label.slice(0, 17) + "…" : label;
+        ctx.fillText(text, 0, 0, maxWidth);
+
+        ctx.restore();
+      }
+
+      // Cercle central
+      ctx.beginPath();
+      ctx.arc(0, 0, 40, 0, Math.PI * 2);
+      const centerGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 40);
+      centerGrad.addColorStop(0, "#020617");
+      centerGrad.addColorStop(1, "#111827");
+      ctx.fillStyle = centerGrad;
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function getSelectedName(angle) {
+      if (names.length === 0) return null;
+      const anglePerSlice = (Math.PI * 2) / names.length;
+
+      // L’aiguille pointe vers la droite (0 rad), on corrige l’angle
+      const normalized = (Math.PI * 2 - (angle % (Math.PI * 2))) % (Math.PI * 2);
+      const index = Math.floor(normalized / anglePerSlice);
+      return names[index];
+    }
+
+    function spinWheel() {
+      if (spinning || names.length === 0) return;
+      spinning = true;
+      spinBtn.disabled = true;
+      resultEl.textContent = "";
+
+      const extraSpins = 4 + Math.random() * 3; // 4 à 7 tours
+      const finalAngle = currentAngle + extraSpins * Math.PI * 2 + Math.random() * Math.PI * 2;
+      const duration = 2600 + Math.random() * 800;
+      const start = performance.now();
+      const startAngle = currentAngle;
+
+      function easeOutCubic(t) {
+        return 1 - Math.pow(1 - t, 3);
+      }
+
+      function animate(now) {
+        const elapsed = now - start;
+        const t = Math.min(1, elapsed / duration);
+        const eased = easeOutCubic(t);
+
+        currentAngle = startAngle + (finalAngle - startAngle) * eased;
+        drawWheel();
+
+        if (t < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          spinning = false;
+          spinBtn.disabled = false;
+          const winner = getSelectedName(currentAngle);
+          if (winner) {
+            resultEl.innerHTML = `Résultat : <span>${winner}</span>`;
+          }
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // --- Actions ---
+    function addNamesFromInput() {
+      const raw = nameInput.value.trim();
+      if (!raw) return;
+
+      // On accepte "Alice, Bob, Chloé"
+      const parts = raw.split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
+      if (parts.length === 0) return;
+
+      for (const p of parts) {
+        if (!names.includes(p)) {
+          names.push(p);
+        }
+      }
+
+      saveNames(names);
+      nameInput.value = "";
+      renderList();
+      drawWheel();
+    }
+
+    addBtn.addEventListener("click", addNamesFromInput);
+    nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addNamesFromInput();
+      }
+    });
+
+    shuffleBtn.addEventListener("click", () => {
+      for (let i = names.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [names[i], names[j]] = [names[j], names[i]];
+      }
+      saveNames(names);
+      renderList();
+      drawWheel();
+    });
+
+    clearBtn.addEventListener("click", () => {
+      if (!confirm("Supprimer tous les prénoms ?")) return;
+      names = [];
+      saveNames(names);
+      renderList();
+      drawWheel();
+      resultEl.textContent = "";
+    });
+
+    spinBtn.addEventListener("click", spinWheel);
+
+    // --- Init ---
+    renderList();
+    drawWheel();
+  </script>
+</body>
+</html>
